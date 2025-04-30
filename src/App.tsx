@@ -9,6 +9,7 @@ import AppHeader from './components/organisms/AppHeader'; // Import AppHeader
 import ProcessStepsBar from './components/organisms/ProcessStepsBar'; // Import ProcessStepsBar
 import RightSidebar from './components/organisms/RightSidebar'; // Import RightSidebar
 import RealtimeVisualization from './components/organisms/RealtimeVisualization'; // Import RealtimeVisualization
+import MeetingForm, { MeetingInfo } from './components/organisms/MeetingForm';
 
 type Meeting = {
   id: string;
@@ -98,6 +99,22 @@ const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null); // For waveform animation
 
+  const [meetingInfo, setMeetingInfo] = useState<MeetingInfo>({
+    title: '',
+    department: '',
+    participants: ''
+  });
+
+  const isMeetingInfoValid = () => {
+    return meetingInfo.title.trim() !== '' && 
+           meetingInfo.department.trim() !== '' && 
+           meetingInfo.participants.trim() !== '';
+  };
+
+  const handleMeetingInfoChange = (info: MeetingInfo) => {
+    setMeetingInfo(info);
+  };
+
   // 음성 파형 시각화 효과 (requestAnimationFrame 사용)
   useEffect(() => {
     if (isRecording && canvasRef.current) {
@@ -160,33 +177,64 @@ const App: React.FC = () => {
     let sentimentTimer: number | null = null;
 
     if (isRecording) {
+      // TODO: 실제 서버 연동 시 구현 필요
+      // 1. WebSocket 연결 설정
+      // const ws = new WebSocket(`${WS_BASE_URL}/api/meetings/realtime-analysis`);
+      // 
+      // ws.onopen = () => {
+      //   console.log('WebSocket 연결됨');
+      // };
+      // 
+      // ws.onmessage = (event) => {
+      //   const data = JSON.parse(event.data);
+      //   
+      //   // 실시간 키워드 업데이트
+      //   if (data.type === 'keyword') {
+      //     setLiveKeywords(prev => [...prev.slice(-5), data.keyword]);
+      //   }
+      //   
+      //   // 실시간 감정 분석 업데이트
+      //   if (data.type === 'sentiment') {
+      //     setSentimentData(prev => [...prev.slice(-29), data.score]);
+      //   }
+      // };
+      // 
+      // ws.onerror = (error) => {
+      //   console.error('WebSocket 에러:', error);
+      // };
+      // 
+      // ws.onclose = () => {
+      //   console.log('WebSocket 연결 종료');
+      // };
+      
+      // 데모용 더미 데이터 생성 코드
       const keywordBank = [
         "목표 달성", "매출 증가", "사용자 경험", "개발 일정", "기능 개선",
         "프로토타입", "고객 피드백", "성능 최적화", "리소스 배분", "마케팅 전략"
       ];
 
       keywordTimer = window.setInterval(() => {
-        if (Math.random() > 0.6) { // Increased frequency slightly
+        if (Math.random() > 0.6) {
           const newKeyword = keywordBank[Math.floor(Math.random() * keywordBank.length)];
-          setLiveKeywords(prev => [...prev.slice(-5), newKeyword]); // Show up to 6 keywords
+          setLiveKeywords(prev => [...prev.slice(-5), newKeyword]);
         }
-      }, 1500); // Generate keywords more often
+      }, 1500);
 
       sentimentTimer = window.setInterval(() => {
         setSentimentData(prev => {
-          const newValue = Math.random() * 0.6 + 0.4; // 0.4 ~ 1.0 (Positive leaning)
-          return [...prev.slice(-29), newValue]; // Keep last 30 data points
+          const newValue = Math.random() * 0.6 + 0.4;
+          return [...prev.slice(-29), newValue];
         });
-      }, 800); // Update sentiment more frequently
+      }, 800);
 
       return () => {
         if (keywordTimer) clearInterval(keywordTimer);
         if (sentimentTimer) clearInterval(sentimentTimer);
+        // TODO: 실제 서버 연동 시 구현 필요
+        // ws.close();
       };
     } else {
-      setLiveKeywords([]); // Clear keywords when not recording
-      // Optionally keep sentiment data for a bit or clear it
-      // setSentimentData([]);
+      setLiveKeywords([]);
     }
   }, [isRecording]);
 
@@ -215,14 +263,60 @@ const App: React.FC = () => {
   }, [currentStep, PDFGenerating]);
 
   const handleRecordToggle = () => {
+    if (!isMeetingInfoValid()) return;
+
     if (isRecording) {
       setIsRecording(false);
       setProcessingStarted(true);
       startProcessingSteps();
+      
+      // TODO: 실제 서버 연동 시 구현 필요
+      // 1. 녹음 중지 및 오디오 데이터 수집
+      // mediaRecorder?.stop();
+      // const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      
+      // 2. FormData 생성 및 서버 전송
+      // const formData = new FormData();
+      // formData.append('audio', audioBlob);
+      // formData.append('meetingInfo', JSON.stringify(meetingInfo));
+      
+      // 3. API 호출
+      // try {
+      //   const response = await fetch('${API_BASE_URL}/api/meetings/process', {
+      //     method: 'POST',
+      //     body: formData
+      //   });
+      //   const data = await response.json();
+      //   // 서버로부터 받은 회의 ID 저장
+      //   const meetingId = data.meetingId;
+      // } catch (error) {
+      //   setError('회의 데이터 전송 중 오류가 발생했습니다.');
+      // }
 
-      // Removed AI insight display logic from here
+      console.log('Sending meeting info to server:', meetingInfo);
     } else {
-      // Reset state for new recording
+      // TODO: 실제 서버 연동 시 구현 필요
+      // 1. 오디오 스트림 획득
+      // try {
+      //   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      //   setAudioStream(stream);
+      //   
+      //   // 2. MediaRecorder 설정
+      //   const recorder = new MediaRecorder(stream);
+      //   setMediaRecorder(recorder);
+      //   
+      //   // 3. 데이터 수집 설정
+      //   recorder.ondataavailable = (event) => {
+      //     setAudioChunks(prev => [...prev, event.data]);
+      //   };
+      //   
+      //   // 4. 녹음 시작
+      //   recorder.start(1000); // 1초마다 청크 생성
+      // } catch (error) {
+      //   setError('마이크 접근 권한이 없거나 오류가 발생했습니다.');
+      //   return;
+      // }
+
       setIsRecording(true);
       setRecordingTime(0);
       setProcessingStarted(false);
@@ -231,9 +325,9 @@ const App: React.FC = () => {
       setShowDocumentPanel(false);
       setShowAIInsights(false);
       setKeyInsights([]);
-      setSentimentData([]); // Clear previous sentiment data
-      setLiveKeywords([]); // Clear previous keywords
-      setAiHighlightMode(false); // Reset highlight mode
+      setSentimentData([]);
+      setLiveKeywords([]);
+      setAiHighlightMode(false);
       setProcessSteps(steps.map(step => ({ ...step, status: 'pending' })));
     }
   };
@@ -242,11 +336,26 @@ const App: React.FC = () => {
     updateStepStatus(1, 'processing');
     setCurrentStep(1);
 
+    // TODO: 실제 서버 연동 시 구현 필요
+    // 1. STT 변환 상태 확인
+    // const checkSTTStatus = async (meetingId: string) => {
+    //   const response = await fetch(`${API_BASE_URL}/api/meetings/${meetingId}/stt-status`);
+    //   return response.json();
+    // };
+
     setTimeout(() => {
       updateStepStatus(1, 'completed');
       updateStepStatus(2, 'processing');
       setCurrentStep(2);
-      // setShowDocumentPanel(true); // Moved this line
+
+      // TODO: 실제 서버 연동 시 구현 필요
+      // 2. 관련 문서 검색 결과 수신
+      // const fetchRelatedDocuments = async (meetingId: string) => {
+      //   const response = await fetch(`${API_BASE_URL}/api/meetings/${meetingId}/related-documents`);
+      //   const documents = await response.json();
+      //   setDocuments(documents);
+      // };
+
       setDocuments([
         { id: 'd1', title: '마케팅_전략_보고서.pdf', date: new Date(2025, 3, 25), type: 'marketing', relevanceScore: 0.92 },
         { id: 'd2', title: '제품_개발_요약.pdf', date: new Date(2025, 3, 26), type: 'product', relevanceScore: 0.87 },
@@ -256,13 +365,21 @@ const App: React.FC = () => {
 
       setTimeout(() => {
         updateStepStatus(2, 'completed');
-        setShowDocumentPanel(true); // Moved here: Show panel after step 2 completes
+        setShowDocumentPanel(true);
         updateStepStatus(3, 'processing');
         setCurrentStep(3);
 
+        // TODO: 실제 서버 연동 시 구현 필요
+        // 3. LLM 분석 결과 수신
+        // const fetchLLMAnalysis = async (meetingId: string) => {
+        //   const response = await fetch(`${API_BASE_URL}/api/meetings/${meetingId}/llm-analysis`);
+        //   const analysis = await response.json();
+        //   setKeyInsights(analysis.insights);
+        //   // 추가 분석 데이터 설정...
+        // };
+
         setTimeout(() => {
           updateStepStatus(3, 'completed');
-          // Show AI insights after step 3 completes
           setShowAIInsights(true);
           setKeyInsights([
             { id: '1', text: "제품 출시 일정을 2주 앞당겨 6월 첫째 주로 변경", timestamp: 124, confidence: 0.92 },
@@ -272,21 +389,36 @@ const App: React.FC = () => {
           updateStepStatus(4, 'processing');
           setCurrentStep(4);
 
+          // TODO: 실제 서버 연동 시 구현 필요
+          // 4. 보고서 생성 상태 확인
+          // const checkReportStatus = async (meetingId: string) => {
+          //   const response = await fetch(`${API_BASE_URL}/api/meetings/${meetingId}/report-status`);
+          //   return response.json();
+          // };
+
           setTimeout(() => {
             updateStepStatus(4, 'completed');
             updateStepStatus(5, 'processing');
             setPDFGenerating(true);
-            setAiHighlightMode(true); // Enable highlight mode when report generation starts
+            setAiHighlightMode(true);
             setCurrentStep(5);
+
+            // TODO: 실제 서버 연동 시 구현 필요
+            // 5. 최종 보고서 다운로드
+            // const downloadReport = async (meetingId: string) => {
+            //   const response = await fetch(`${API_BASE_URL}/api/meetings/${meetingId}/report-download`);
+            //   const blob = await response.blob();
+            //   // 보고서 다운로드 처리...
+            // };
 
             setTimeout(() => {
               updateStepStatus(5, 'completed');
               setMenuOpen(null);
-            }, 2000); // Step 5 duration (Changed to 2000ms)
-          }, 4000); // Step 4 duration (Changed to 2000ms)
-        }, 5000); // Step 3 duration (Changed to 2000ms)
-      }, 5000); // Step 2 duration (Changed to 2000ms)
-    }, 2000); // Step 1 duration (Changed to 2000ms)
+            }, 2000);
+          }, 4000);
+        }, 5000);
+      }, 5000);
+    }, 2000);
   };
 
   const updateStepStatus = (stepId: number, status: 'pending' | 'processing' | 'completed') => {
@@ -379,6 +511,15 @@ const App: React.FC = () => {
         {/* Main Scrollable Area */}
         <div className="flex-1 p-6 lg:p-8 overflow-auto bg-gray-50">
           <div className="max-w-6xl mx-auto">
+
+            {/* Show meeting form when not recording or processing */}
+            {!isRecording && !processingStarted && (
+              <MeetingForm
+                meetingInfo={meetingInfo}
+                onMeetingInfoChange={handleMeetingInfoChange}
+                isValid={isMeetingInfoValid()}
+              />
+            )}
 
             {/* Use RealtimeVisualization Organism */}
             {isRecording && (
@@ -597,12 +738,15 @@ const App: React.FC = () => {
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
           <motion.button
             onClick={handleRecordToggle}
+            disabled={!isRecording && !isMeetingInfoValid()}
             className={`flex items-center justify-center w-16 h-16 rounded-full shadow-xl focus:outline-none focus:ring-4 transition-all duration-300
               ${isRecording
                 ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
-                : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
+                : isMeetingInfoValid()
+                  ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'
+                  : 'bg-gray-400 cursor-not-allowed'}`}
+            whileHover={{ scale: isMeetingInfoValid() ? 1.05 : 1 }}
+            whileTap={{ scale: isMeetingInfoValid() ? 0.9 : 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             {isRecording ? (
