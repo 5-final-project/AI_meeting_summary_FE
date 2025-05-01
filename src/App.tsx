@@ -10,6 +10,7 @@ import ProcessStepsBar from './components/organisms/ProcessStepsBar'; // Import 
 import RightSidebar from './components/organisms/RightSidebar'; // Import RightSidebar
 import RealtimeVisualization from './components/organisms/RealtimeVisualization'; // Import RealtimeVisualization
 import MeetingForm, { MeetingInfo } from './components/organisms/MeetingForm';
+import { getAllMeetings, getMeeting } from './api/meeting';
 
 type Meeting = {
   id: string;
@@ -47,33 +48,8 @@ const App: React.FC = () => {
   const [processingStarted, setProcessingStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [showDocumentPanel, setShowDocumentPanel] = useState(false);
-  const [meetings, setMeetings] = useState<Meeting[]>([
-    {
-      id: '1',
-      title: '마케팅 전략 회의',
-      date: new Date(2025, 3, 25),
-      duration: 45,
-      isSelected: false,
-      insightScore: 87,
-    },
-    {
-      id: '2',
-      title: '제품 개발 미팅',
-      date: new Date(2025, 3, 26),
-      duration: 32,
-      isSelected: true,
-      insightScore: 92,
-    },
-    {
-      id: '3',
-      title: '분기별 예산 회의',
-      date: new Date(2025, 3, 22),
-      duration: 58,
-      isSelected: false,
-      insightScore: 76,
-    },
-  ]);
-
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [selectedMeetingData, setSelectedMeetingData] = useState<any>(null);
   // 실시간 AI 관련 상태
   const [liveKeywords, setLiveKeywords] = useState<string[]>([]);
   const [keyInsights, setKeyInsights] = useState<KeyInsight[]>([]);
@@ -90,7 +66,7 @@ const App: React.FC = () => {
     { id: 2, title: '관련 문서 탐색', status: 'pending' },
     { id: 3, title: 'LLM 정리', status: 'pending' },
     { id: 4, title: '보고서 작성', status: 'pending' },
-    { id: 5, title: '문서 생성', status: 'pending' },
+    { id: 5, title: '완료', status: 'pending' },
   ];
 
   const [processSteps, setProcessSteps] = useState<ProcessStep[]>(steps);
@@ -431,13 +407,54 @@ const App: React.FC = () => {
     setMenuOpen(menuOpen === id ? null : id);
   };
 
-  const handleMeetingSelect = (id: string) => {
+  const handleMeetingSelect = async (id: string) => {
     setMeetings(meetings.map(meeting => ({
       ...meeting,
       isSelected: meeting.id === id
     })));
-    // Optionally reset state when selecting a different meeting
-    // handleRecordToggle(); // If you want to stop/reset when switching meetings
+
+    try {
+      const data = await getMeeting(id);
+      setSelectedMeetingData(data);
+
+      // 관련 문서 처리
+      const docs = (data.documents || []).map((doc: any) => ({
+        id: doc.document_id,
+        title: doc.document_title,
+        date: new Date(data.meeting.meeting_date),
+        type: inferDocumentType(doc.document_file_path),
+        relevanceScore: doc.similarity_score,
+      }));
+      setDocuments(docs);
+      setShowDocumentPanel(docs.length > 0);
+
+      // 핵심 인사이트 처리
+      const insights = (data.insights || []).map((ins: any, idx: number) => ({
+        id: ins.insight_id || String(idx),
+        text: ins.insight_text,
+        timestamp: 0,
+        confidence: 0.9,
+      }));
+      setKeyInsights(insights);
+      setShowAIInsights(insights.length > 0);
+
+      // 보고서
+      if (data.report) {
+        setPDFGenerating(false);
+        setAiHighlightMode(false);
+      }
+    } catch (error) {
+      console.error('회의 상세 정보 불러오기 실패:', error);
+    }
+  };
+
+  // 파일 경로를 기반으로 문서 타입 추론 (단순 버전)
+  const inferDocumentType = (path: string): string => {
+    if (!path) return 'other';
+    if (path.includes('marketing')) return 'marketing';
+    if (path.includes('product')) return 'product';
+    if (path.includes('finance')) return 'finance';
+    return 'other';
   };
 
   const formatTime = (seconds: number) => {
@@ -481,6 +498,27 @@ const App: React.FC = () => {
     // Optionally re-select the current meeting or default
   };
 
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        const result = await getAllMeetings();
+        const list = Array.isArray(result) ? result : result.meetings;
+        const mapped: Meeting[] = (list || []).map((m: any, idx: number) => ({
+          id: m.meeting_id ?? m.id ?? String(idx),
+          title: m.title,
+          date: new Date(m.meeting_date || m.date || Date.now()),
+          duration: m.duration ?? 0,
+          isSelected: idx === 0, // 첫 번째 회의를 기본 선택
+          insightScore: m.insightScore ?? undefined,
+        }));
+        setMeetings(mapped);
+      } catch (error) {
+        console.error('회의 목록 불러오기 실패:', error);
+      }
+    };
+
+    fetchMeetings();
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
@@ -513,12 +551,52 @@ const App: React.FC = () => {
           <div className="max-w-6xl mx-auto">
 
             {/* Show meeting form when not recording or processing */}
-            {!isRecording && !processingStarted && (
-              <MeetingForm
-                meetingInfo={meetingInfo}
-                onMeetingInfoChange={handleMeetingInfoChange}
-                isValid={isMeetingInfoValid()}
-              />
+            {!isRecording && !PDFGenerating && !processingStarted && (
+              selectedMeetingData ? (
+                <div className="mb-8 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                  <h2 className="text-xl font-semibold mb-4">회의 상세 정보</h2>
+
+                  <p className="text-base font-medium mb-2">{selectedMeetingData.meeting.title}</p>
+                  <p className="text-sm text-gray-500 mb-6">
+                    {new Date(selectedMeetingData.meeting.meeting_date).toLocaleString()}
+                  </p>
+
+                  {selectedMeetingData.documents?.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold mb-2">관련 문서</h3>
+                      <ul className="list-disc ml-6 space-y-1 text-sm">
+                        {selectedMeetingData.documents.map((doc: any) => (
+                          <li key={doc.document_id}>{doc.document_title} (유사도 {doc.similarity_score})</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedMeetingData.insights?.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="font-semibold mb-2">핵심 인사이트</h3>
+                      <ul className="list-disc ml-6 space-y-1 text-sm">
+                        {selectedMeetingData.insights.map((insight: any) => (
+                          <li key={insight.insight_id}>{insight.insight_text}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedMeetingData.report && (
+                    <div>
+                      <h3 className="font-semibold mb-2">최종 보고서</h3>
+                      <p className="whitespace-pre-line text-sm">{selectedMeetingData.report.report_content}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <MeetingForm
+                  meetingInfo={meetingInfo}
+                  onMeetingInfoChange={handleMeetingInfoChange}
+                  isValid={isMeetingInfoValid()}
+                />
+              )
             )}
 
             {/* Use RealtimeVisualization Organism */}
@@ -668,7 +746,7 @@ const App: React.FC = () => {
               className={`bg-white rounded-2xl shadow-xl border border-gray-200 p-8 min-h-[600px] relative transition-all duration-300 ${aiHighlightMode ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}
             >
               {/* Placeholder for initial state or when not generating */}
-              {!isRecording && !PDFGenerating && !processingStarted && (
+              {!isRecording && !PDFGenerating && !processingStarted && !selectedMeetingData?.report && (
                 <div className="flex flex-col items-center justify-center h-96 text-center">
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}>
                     <Users size={56} className="text-gray-400 mb-4" />
@@ -728,6 +806,15 @@ const App: React.FC = () => {
                     <motion.div initial={{ width: 0 }} animate={{ width: '95%' }} transition={{ duration: 1.0, delay: 2.7 }} className={`h-4 bg-gray-200 rounded mb-3 ${aiHighlightMode ? 'bg-blue-100' : ''}`} />
                     <motion.div initial={{ width: 0 }} animate={{ width: '75%' }} transition={{ duration: 1.0, delay: 2.9 }} className={`h-4 bg-gray-200 rounded mb-3 ${aiHighlightMode ? 'bg-blue-100' : ''}`} />
                   </motion.div>
+                </div>
+              )}
+              {/* 보고서 뷰어 */}
+              {!isRecording && !PDFGenerating && selectedMeetingData?.report && (
+                <div className="prose max-w-none">
+                  <h2 className="text-2xl font-bold mb-4">최종 보고서</h2>
+                  <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {selectedMeetingData.report.report_content}
+                  </pre>
                 </div>
               )}
             </div>
