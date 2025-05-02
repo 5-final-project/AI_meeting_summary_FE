@@ -3,17 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Sparkles, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { Meeting } from '../../App';
 
 // Define the props based on the Meeting type and interaction needs
 type MeetingListItemProps = {
-    meeting: {
-        id: string;
-        title: string;
-        date: Date;
-        duration: number;
-        isSelected: boolean;
-        insightScore?: number;
-    };
+    meeting: Meeting;
     menuOpenId: string | null;
     onSelect: (id: string) => void;
     onMenuToggle: (id: string) => void;
@@ -41,7 +35,7 @@ const MeetingListItem: React.FC<MeetingListItemProps> = ({
                     <h3 className="font-semibold text-gray-900 text-base mb-1">{meeting.title}</h3>
                     <div className="flex items-center text-xs text-gray-500 mt-1 space-x-2 mb-2">
                         <Clock size={12} />
-                        <span>{format(meeting.date, 'yyyy.MM.dd', { locale: ko })} - {meeting.duration}분</span>
+                        <span>{format(meeting.date, 'yyyy.MM.dd', { locale: ko })}</span>
                     </div>
 
                     {/* Insight Score Bar */}

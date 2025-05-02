@@ -42,8 +42,8 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({ doc, index }) => {
                 <div className={`p-2 rounded-lg ${getTypeColorClasses(doc.type)}`}>
                     <FileText size={18} />
                 </div>
-                <div className="flex-1">
-                    <h3 className="font-medium text-gray-800 text-sm truncate">{doc.title}</h3>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-800 text-sm truncate overflow-hidden text-ellipsis whitespace-nowrap">{doc.title}</h3>
                     <p className="text-xs text-gray-500">{format(doc.date, 'yyyy.MM.dd', { locale: ko })}</p>
                 </div>
                 {/* Relevance Score Indicator */}

@@ -65,7 +65,7 @@ export const MeetingHistory: React.FC = () => {
               <h4 className="font-semibold">관련 문서</h4>
               {selectedMeeting.documents.map((doc: any) => (
                 <div key={doc.document_id} className="ml-2 mt-1 text-sm">
-                  <p>{doc.document_title}</p>
+                  <p className="truncate">{doc.document_title}</p>
                   <p className="text-xs text-gray-500">유사도: {doc.similarity_score}</p>
                 </div>
               ))}
@@ -78,7 +78,7 @@ export const MeetingHistory: React.FC = () => {
               <h4 className="font-semibold">핵심 인사이트</h4>
               {selectedMeeting.insights.map((insight: any) => (
                 <div key={insight.insight_id} className="ml-2 mt-1 text-sm">
-                  <p>{insight.insight_text}</p>
+                  <p className="whitespace-pre-line">{insight.insight_text}</p>
                 </div>
               ))}
             </div>

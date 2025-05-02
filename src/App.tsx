@@ -12,11 +12,12 @@ import RealtimeVisualization from './components/organisms/RealtimeVisualization'
 import MeetingForm, { MeetingInfo } from './components/organisms/MeetingForm';
 import { getAllMeetings, getMeeting } from './api/meeting';
 
-type Meeting = {
+// Meeting 타입을 export하여 다른 컴포넌트에서 사용할 수 있게 함
+export type Meeting = {
   id: string;
   title: string;
   date: Date;
-  duration: number;
+  duration?: number; // duration을 선택적으로 변경
   isSelected: boolean;
   insightScore?: number; // 인사이트 점수 추가
 };
@@ -56,6 +57,7 @@ const App: React.FC = () => {
   const [sentimentData, setSentimentData] = useState<number[]>([]);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [aiHighlightMode, setAiHighlightMode] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -239,8 +241,6 @@ const App: React.FC = () => {
   }, [currentStep, PDFGenerating]);
 
   const handleRecordToggle = () => {
-    if (!isMeetingInfoValid()) return;
-
     if (isRecording) {
       setIsRecording(false);
       setProcessingStarted(true);
@@ -271,41 +271,46 @@ const App: React.FC = () => {
 
       console.log('Sending meeting info to server:', meetingInfo);
     } else {
-      // TODO: 실제 서버 연동 시 구현 필요
-      // 1. 오디오 스트림 획득
-      // try {
-      //   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      //   setAudioStream(stream);
-      //   
-      //   // 2. MediaRecorder 설정
-      //   const recorder = new MediaRecorder(stream);
-      //   setMediaRecorder(recorder);
-      //   
-      //   // 3. 데이터 수집 설정
-      //   recorder.ondataavailable = (event) => {
-      //     setAudioChunks(prev => [...prev, event.data]);
-      //   };
-      //   
-      //   // 4. 녹음 시작
-      //   recorder.start(1000); // 1초마다 청크 생성
-      // } catch (error) {
-      //   setError('마이크 접근 권한이 없거나 오류가 발생했습니다.');
-      //   return;
-      // }
-
-      setIsRecording(true);
-      setRecordingTime(0);
-      setProcessingStarted(false);
-      setCurrentStep(0);
-      setPDFGenerating(false);
-      setShowDocumentPanel(false);
-      setShowAIInsights(false);
-      setKeyInsights([]);
-      setSentimentData([]);
-      setLiveKeywords([]);
-      setAiHighlightMode(false);
-      setProcessSteps(steps.map(step => ({ ...step, status: 'pending' })));
+      // 녹음 전 회의 정보 입력 모달 표시
+      setShowMeetingModal(true);
     }
+  };
+
+  // 모달에서 호출되는 실제 녹음 시작 로직
+  const startRecording = () => {
+    // 녹음 시작 시 회의 카드 생성
+    const newMeeting: Meeting = {
+      id: `meeting-${Date.now()}`, // 임시 ID 생성 (서버에서 실제 ID 부여 예정)
+      title: meetingInfo.title,
+      date: new Date(),
+      isSelected: true, // 새 회의 카드를 선택 상태로 설정
+    };
+    
+    // 새 회의를 목록에 추가하고 기존 선택된 회의는 선택 해제
+    setMeetings(prev => [
+      newMeeting,
+      ...prev.map(meeting => ({
+        ...meeting,
+        isSelected: false // 기존 선택된 회의는 모두 선택 해제
+      }))
+    ]);
+    
+    // 녹음 상태 설정
+    setIsRecording(true);
+    setRecordingTime(0);
+    setProcessingStarted(false);
+    setCurrentStep(0);
+    setPDFGenerating(false);
+    setShowDocumentPanel(false);
+    setShowAIInsights(false);
+    setKeyInsights([]);
+    setSentimentData([]);
+    setLiveKeywords([]);
+    setAiHighlightMode(false);
+    setProcessSteps(steps.map(step => ({ ...step, status: 'pending' })));
+    
+    // 회의 정보 모달 닫기
+    setShowMeetingModal(false);
   };
 
   const startProcessingSteps = () => {
@@ -551,53 +556,20 @@ const App: React.FC = () => {
           <div className="max-w-6xl mx-auto">
 
             {/* Show meeting form when not recording or processing */}
+            {/* Meeting form moved to modal */}
+            {/* 
             {!isRecording && !PDFGenerating && !processingStarted && (
-              selectedMeetingData ? (
-                <div className="mb-8 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                  <h2 className="text-xl font-semibold mb-4">회의 상세 정보</h2>
-
-                  <p className="text-base font-medium mb-2">{selectedMeetingData.meeting.title}</p>
-                  <p className="text-sm text-gray-500 mb-6">
-                    {new Date(selectedMeetingData.meeting.meeting_date).toLocaleString()}
-                  </p>
-
-                  {selectedMeetingData.documents?.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="font-semibold mb-2">관련 문서</h3>
-                      <ul className="list-disc ml-6 space-y-1 text-sm">
-                        {selectedMeetingData.documents.map((doc: any) => (
-                          <li key={doc.document_id}>{doc.document_title} (유사도 {doc.similarity_score})</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedMeetingData.insights?.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="font-semibold mb-2">핵심 인사이트</h3>
-                      <ul className="list-disc ml-6 space-y-1 text-sm">
-                        {selectedMeetingData.insights.map((insight: any) => (
-                          <li key={insight.insight_id}>{insight.insight_text}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedMeetingData.report && (
-                    <div>
-                      <h3 className="font-semibold mb-2">최종 보고서</h3>
-                      <p className="whitespace-pre-line text-sm">{selectedMeetingData.report.report_content}</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <MeetingForm
-                  meetingInfo={meetingInfo}
-                  onMeetingInfoChange={handleMeetingInfoChange}
-                  isValid={isMeetingInfoValid()}
-                />
-              )
+              selectedMeetingData
+                ? null
+                : (
+                  <MeetingForm
+                    meetingInfo={meetingInfo}
+                    onMeetingInfoChange={handleMeetingInfoChange}
+                    isValid={isMeetingInfoValid()}
+                  />
+                )
             )}
+            */}
 
             {/* Use RealtimeVisualization Organism */}
             {isRecording && (
@@ -825,15 +797,12 @@ const App: React.FC = () => {
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
           <motion.button
             onClick={handleRecordToggle}
-            disabled={!isRecording && !isMeetingInfoValid()}
             className={`flex items-center justify-center w-16 h-16 rounded-full shadow-xl focus:outline-none focus:ring-4 transition-all duration-300
               ${isRecording
                 ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
-                : isMeetingInfoValid()
-                  ? 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'
-                  : 'bg-gray-400 cursor-not-allowed'}`}
-            whileHover={{ scale: isMeetingInfoValid() ? 1.05 : 1 }}
-            whileTap={{ scale: isMeetingInfoValid() ? 0.9 : 1 }}
+                : 'bg-blue-500 hover:bg-blue-600 focus:ring-blue-300'}`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             {isRecording ? (
@@ -852,6 +821,56 @@ const App: React.FC = () => {
         onReset={handleReset}
         getDocumentNodeSize={getDocumentNodeSize}
       />
+
+      {/* Meeting Info Modal */}
+      <AnimatePresence>
+        {showMeetingModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-lg p-6 w-11/12 max-w-lg"
+            >
+              <MeetingForm
+                meetingInfo={meetingInfo}
+                onMeetingInfoChange={handleMeetingInfoChange}
+                isValid={isMeetingInfoValid()}
+              />
+              <div className="flex justify-end space-x-3 mt-4">
+                <button
+                  onClick={() => setShowMeetingModal(false)}
+                  className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700"
+                >
+                  취소
+                </button>
+                <button
+                  disabled={!isMeetingInfoValid()}
+                  onClick={() => {
+                    if (isMeetingInfoValid()) {
+                      setShowMeetingModal(false);
+                      startRecording();
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg ${
+                    isMeetingInfoValid()
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  }`}
+                >
+                  녹음 시작
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

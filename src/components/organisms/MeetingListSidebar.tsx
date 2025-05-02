@@ -1,15 +1,6 @@
 import React from 'react';
 import MeetingListItem from '../molecules/MeetingListItem'; // Import the molecule
-
-// Define the Meeting type again or import from a shared types file
-type Meeting = {
-    id: string;
-    title: string;
-    date: Date;
-    duration: number;
-    isSelected: boolean;
-    insightScore?: number;
-};
+import { Meeting } from '../../App'; // Import the Meeting type from App.tsx
 
 // Define props for the sidebar
 type MeetingListSidebarProps = {
