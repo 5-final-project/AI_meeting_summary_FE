@@ -825,50 +825,61 @@ const App: React.FC = () => {
       {/* Meeting Info Modal */}
       <AnimatePresence>
         {showMeetingModal && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <>
+            {/* 배경 블러 효과 레이어 */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg p-6 w-11/12 max-w-lg"
+              className="fixed inset-0 backdrop-blur-[2px] z-40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            
+            {/* 모달 컨테이너 */}
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              <MeetingForm
-                meetingInfo={meetingInfo}
-                onMeetingInfoChange={handleMeetingInfoChange}
-                isValid={isMeetingInfoValid()}
-              />
-              <div className="flex justify-end space-x-3 mt-4">
-                <button
-                  onClick={() => setShowMeetingModal(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700"
-                >
-                  취소
-                </button>
-                <button
-                  disabled={!isMeetingInfoValid()}
-                  onClick={() => {
-                    if (isMeetingInfoValid()) {
-                      setShowMeetingModal(false);
-                      startRecording();
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-lg ${
-                    isMeetingInfoValid()
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                  }`}
-                >
-                  녹음 시작
-                </button>
-              </div>
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-lg border border-gray-200 pointer-events-auto"
+              >
+                <MeetingForm
+                  meetingInfo={meetingInfo}
+                  onMeetingInfoChange={handleMeetingInfoChange}
+                  isValid={isMeetingInfoValid()}
+                />
+                <div className="flex justify-end space-x-3 mt-4">
+                  <button
+                    onClick={() => setShowMeetingModal(false)}
+                    className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700"
+                  >
+                    취소
+                  </button>
+                  <button
+                    disabled={!isMeetingInfoValid()}
+                    onClick={() => {
+                      if (isMeetingInfoValid()) {
+                        setShowMeetingModal(false);
+                        startRecording();
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg ${
+                      isMeetingInfoValid()
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    }`}
+                  >
+                    녹음 시작
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
