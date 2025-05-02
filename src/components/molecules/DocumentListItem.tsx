@@ -19,15 +19,21 @@ type DocumentListItemProps = {
 };
 
 const DocumentListItem: React.FC<DocumentListItemProps> = ({ doc, index }) => {
-    // Function to get color based on document type
-    const getTypeColorClasses = (type: string) => {
-        switch (type) {
-            case 'marketing': return 'bg-red-50 text-red-500';
-            case 'product': return 'bg-blue-50 text-blue-500';
-            case 'finance': return 'bg-green-50 text-green-500';
-            default: return 'bg-gray-100 text-gray-500';
-        }
-    };
+    // 문서마다 다양한 색상을 적용하기 위한 색상 배열
+    const documentColors = [
+        { bg: 'bg-red-50', text: 'text-red-500' },
+        { bg: 'bg-blue-50', text: 'text-blue-500' },
+        { bg: 'bg-green-50', text: 'text-green-500' },
+        { bg: 'bg-purple-50', text: 'text-purple-500' },
+        { bg: 'bg-yellow-50', text: 'text-yellow-500' },
+        { bg: 'bg-pink-50', text: 'text-pink-500' },
+        { bg: 'bg-indigo-50', text: 'text-indigo-500' },
+        { bg: 'bg-teal-50', text: 'text-teal-500' }
+    ];
+    
+    // 문서 인덱스에 따라 색상 선택 (순환)
+    const colorIndex = index % documentColors.length;
+    const color = documentColors[colorIndex];
 
     return (
         <motion.div
@@ -39,7 +45,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({ doc, index }) => {
             className="rounded-xl p-3 bg-white hover:bg-gray-50 border border-gray-200 transition-colors cursor-pointer shadow-sm"
         >
             <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${getTypeColorClasses(doc.type)}`}>
+                <div className={`p-2 rounded-lg ${color.bg} ${color.text}`}>
                     <FileText size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -49,9 +55,9 @@ const DocumentListItem: React.FC<DocumentListItemProps> = ({ doc, index }) => {
                 {/* Relevance Score Indicator */}
                 {doc.relevanceScore && (
                     <div className="flex flex-col items-center ml-2">
-                        <div className="text-xs font-semibold text-blue-600">{Math.round(doc.relevanceScore * 100)}</div>
+                        <div className={`text-xs font-semibold ${color.text}`}>{Math.round(doc.relevanceScore * 100)}</div>
                         <div className="w-8 h-1 bg-gray-200 rounded-full mt-0.5">
-                            <div className="h-1 bg-blue-500 rounded-full" style={{ width: `${doc.relevanceScore * 100}%` }}></div>
+                            <div className={`h-1 ${color.text.replace('text', 'bg')} rounded-full`} style={{ width: `${doc.relevanceScore * 100}%` }}></div>
                         </div>
                     </div>
                 )}

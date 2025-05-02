@@ -57,27 +57,45 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                     <p className="text-xs text-gray-400 absolute top-2 left-2 z-10">3D 시각화 영역</p>
                     {documents.length > 0 ? (
                         <div className="relative w-full h-full flex items-center justify-center p-4">
-                            {documents.map((doc, index) => (
-                                <motion.div
-                                    key={doc.id}
-                                    initial={{ opacity: 0, scale: 0 }}
-                                    animate={{
-                                        opacity: 0.8,
-                                        scale: 1,
-                                        x: (Math.random() - 0.5) * 80, // Random position
-                                        y: (Math.random() - 0.5) * 50,
-                                    }}
-                                    transition={{ delay: 0.5 + index * 0.1, type: 'spring', stiffness: 100 }}
-                                    className={`absolute rounded-full border-2 border-purple-300 flex items-center justify-center ${doc.type === 'marketing' ? 'bg-red-200' : doc.type === 'product' ? 'bg-blue-200' : doc.type === 'finance' ? 'bg-green-200' : 'bg-gray-200'}`}
-                                    style={{
-                                        width: `${getDocumentNodeSize(doc.relevanceScore)}px`,
-                                        height: `${getDocumentNodeSize(doc.relevanceScore)}px`,
-                                    }}
-                                    title={`${doc.title} (Relevance: ${Math.round((doc.relevanceScore || 0) * 100)}%)`}
-                                >
-                                    <FileText size={getDocumentNodeSize(doc.relevanceScore) * 0.4} className="text-purple-600 opacity-70" />
-                                </motion.div>
-                            ))}
+                            {documents.map((doc, index) => {
+                                // 문서마다 다양한 색상을 적용하기 위한 색상 배열
+                                const documentColors = [
+                                    { bg: 'bg-red-200', border: 'border-red-300', icon: 'text-red-600' },
+                                    { bg: 'bg-blue-200', border: 'border-blue-300', icon: 'text-blue-600' },
+                                    { bg: 'bg-green-200', border: 'border-green-300', icon: 'text-green-600' },
+                                    { bg: 'bg-purple-200', border: 'border-purple-300', icon: 'text-purple-600' },
+                                    { bg: 'bg-yellow-200', border: 'border-yellow-300', icon: 'text-yellow-600' },
+                                    { bg: 'bg-pink-200', border: 'border-pink-300', icon: 'text-pink-600' },
+                                    { bg: 'bg-indigo-200', border: 'border-indigo-300', icon: 'text-indigo-600' },
+                                    { bg: 'bg-teal-200', border: 'border-teal-300', icon: 'text-teal-600' }
+                                ];
+                                
+                                // 문서 인덱스에 따라 색상 선택 (순환)
+                                const colorIndex = index % documentColors.length;
+                                const color = documentColors[colorIndex];
+                                
+                                return (
+                                    <motion.div
+                                        key={doc.id}
+                                        initial={{ opacity: 0, scale: 0 }}
+                                        animate={{
+                                            opacity: 0.8,
+                                            scale: 1,
+                                            x: (Math.random() - 0.5) * 80, // Random position
+                                            y: (Math.random() - 0.5) * 50,
+                                        }}
+                                        transition={{ delay: 0.5 + index * 0.1, type: 'spring', stiffness: 100 }}
+                                        className={`absolute rounded-full border-2 ${color.border} flex items-center justify-center ${color.bg}`}
+                                        style={{
+                                            width: `${getDocumentNodeSize(doc.relevanceScore)}px`,
+                                            height: `${getDocumentNodeSize(doc.relevanceScore)}px`,
+                                        }}
+                                        title={`${doc.title} (Relevance: ${Math.round((doc.relevanceScore || 0) * 100)}%)`}
+                                    >
+                                        <FileText size={getDocumentNodeSize(doc.relevanceScore) * 0.4} className={`${color.icon} opacity-70`} />
+                                    </motion.div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <p className="text-sm text-gray-400">문서 없음</p>
